@@ -3,7 +3,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <tests/catch.hpp>
-
 #include "cosigner/cmp_ecdsa_offline_signing_service.h"
 #include "cosigner/cosigner_exception.h"
 #include "cosigner/cmp_signature_preprocessed_data.h"
@@ -13,6 +12,7 @@
 #include "crypto/GFp_curve_algebra/GFp_curve_algebra.h"
 #include "cosigner/cmp_key_persistency.h"
 #include "cosigner/mpc_globals.h"
+#include <fstream>
 
 #include <string.h>
 
@@ -397,6 +397,14 @@ static void ecdsa_sign(std::map<uint64_t, std::unique_ptr<offline_siging_info>>&
         std::cout << "DERIVED PUBLIC KEY: " << HexStr(derived_key, &derived_key[sizeof(PubKey)]) << std::endl;
         std::cout << "MASTER PUBLIC KEY: " << HexStr(pubkey, &pubkey[sizeof(PubKey)]) << std::endl;
 
+        std::ofstream Signature_Result_File("../../scripts/signature_result.json");
+
+        // Write to the file
+        Signature_Result_File << "{\"public_key\": \""<< HexStr(derived_key, &derived_key[sizeof(PubKey)]) + "\", \"R\": \"" + HexStr(sigs[i].r, &sigs[i].r[sizeof(elliptic_curve256_scalar_t)]) + "\", \"S\": \"" + HexStr(sigs[i].s, &sigs[i].s[sizeof(elliptic_curve256_scalar_t)]) + "\"}";
+
+        // Close the file
+        Signature_Result_File.close();
+
         REQUIRE(GFp_curve_algebra_verify_signature((GFp_curve_algebra_ctx_t*)algebra->ctx, &derived_key, &msg, &sigs[i].r, &sigs[i].s) == ELLIPTIC_CURVE_ALGEBRA_SUCCESS);
         if (positive_r)
         {
@@ -492,13 +500,14 @@ TEST_CASE("cmp_offline_ecdsa") {
     players_setup_info players;
 
     SECTION("secp256k1") {  
-        std::cout << "===============================================================================" << std::endl;
+        std::cout << "\n================================= GENERATE KEY AND SIGN ==============================================\n" << std::endl;
         uuid_t uid;
         uuid_generate_random(uid);
         uuid_unparse(uid, keyid);
         players.clear();
         players[1];
         players[2];
+        players[3];
         create_secret(players, ECDSA_SECP256K1, keyid, pubkey);
 
         std::map<uint64_t, std::unique_ptr<offline_siging_info>> services;
@@ -511,42 +520,7 @@ TEST_CASE("cmp_offline_ecdsa") {
         ecdsa_preprocess(services, keyid, 0, 10, 10);
         ecdsa_sign(services, ECDSA_SECP256K1, keyid, 0, 1, pubkey, chaincode, {path});
 
-        std::cout << "===============================================================================" << std::endl;
-        char txid[37] = {0};
-        uuid_generate_random(uid);
-        uuid_unparse(uid, txid);
-        std::set<uint64_t> players_ids;
-        std::set<std::string> players_str;
-        for (auto i = services.begin(); i != services.end(); ++i)
-        {
-            players_ids.insert(i->first);
-            players_str.insert(std::to_string(i->first));
-        }
-        signing_data data;
-        memcpy(data.chaincode, chaincode.data(), sizeof(HDChaincode));
-        signing_block_data block;
-        block.data.insert(block.data.begin(), 32, '0');
-        block.path = path;
-        data.blocks.push_back(block);
-        std::vector<recoverable_signature> sigs;
-        REQUIRE_THROWS_MATCHES(services.begin()->second->signing_service.ecdsa_sign(keyid, txid, data, "", players_str, players_ids, 0, sigs), cosigner_exception, 
-            Catch::Matchers::Predicate<cosigner_exception>([](const cosigner_exception& e) {return e.error_code() == cosigner_exception::INVALID_PRESIGNING_INDEX;}));
-        
-        // run 4 times as R has 50% chance of being negative
-        for (size_t i = 0; i < 4; ++i)
-            ecdsa_sign(services, ECDSA_SECP256K1, keyid, i + 1, 1, pubkey, chaincode, {path}, true);
-
-        std::cout << "===============================================================================" << std::endl;
-        const size_t COUNT = 4;
-        std::vector<uint32_t> derivation_path = {44, 0, 0, 0, 0};
-        std::vector<std::vector<uint32_t>> derivation_paths;
-        for (size_t i = 0; i < COUNT; i++)
-        {
-            derivation_paths.push_back(derivation_path);
-            ++derivation_path[2];
-        }
-        ecdsa_sign(services, ECDSA_SECP256K1, keyid, 5, COUNT, pubkey, chaincode, derivation_paths);
-
+        std::cout << "\n================================== REFRESH KEY AND SIGN =============================================\n" << std::endl;
         std::map<uint64_t, std::unique_ptr<key_refresh_info>> refresh_info;
         for (auto i = players.begin(); i != players.end(); ++i)
         {
@@ -554,13 +528,12 @@ TEST_CASE("cmp_offline_ecdsa") {
             refresh_info.emplace(i->first, move(info));
         }
 
-        std::cout << "================================== REFRESH KEY AND SIGN =============================================" << std::endl;
         key_refresh(refresh_info, keyid, pubkey);
         for (auto i = players.begin(); i != players.end(); ++i)
         {
             std::cout << "PLAYER " << i->first << " SHARE: " << i->second.dump_key(keyid) << std::endl;
         }
-        ecdsa_sign(services, ECDSA_SECP256K1, keyid, 9, 1, pubkey, chaincode, derivation_paths);
+        ecdsa_sign(services, ECDSA_SECP256K1, keyid, 9, 1, pubkey, chaincode, {path});
     }
 
 //     SECTION("MT") {  

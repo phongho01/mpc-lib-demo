@@ -17,14 +17,9 @@ make run-tests
 ```
 
 ### Generate address and signature
-Install package:
+Get `public key`, `message` and `signature` by running:
 ```sh
-cd scripts && npm install
-```
-
-Replace `DERIVED_PUBLIC_KEY`, `r`, `s` variable in `index.js` file and run:
-```sh
-node index.js
+node scripts/index.js
 ```
 
 Go to [Etherscan Verified Signatures](https://etherscan.io/verifiedSignatures) to verify the signature
