@@ -3,10 +3,10 @@ const publicKeyToAddress = require('ethereum-public-key-to-address');
 
 // VARIABLE
 const MESSAGE = 'hello world';
-const DERIVED_PUBLIC_KEY = '03b31cd1e0e7497cb0f4478277e3d00616155170e9f6b156faebb8c91e93ebed91';
-const r = 'cd1c110d1b2a3be3e07d4c7b45c304bf34b22d027bb6eb30f5cffba7c479d5ee';
-const s = '08f59b5d67e2dfdc5f94fb57ba1530a9392d964ddbbf90d0b60c7060ec521093';
-const v = '1c'; // 1b
+const DERIVED_PUBLIC_KEY = '029baa2b1d7e0419650dc0b06297ea8ecb900d0d7ddaf802633941380ecef690dc';
+const r = 'e475fc69c579b842b719be0c78771ba6dbf3ce03f1ec698c9cceebe102db7650';
+const s = '4358a2fd2e41c01d33965e708143a210c2abeb2c27facee8197efec6a627d2b7';
+const v = '1b'; // 1b
 
 // Sign the string message
 const getSignature = async () => {
