@@ -3,12 +3,12 @@
 ### Building and Testing
 Build docker with the command:
 ```sh
-docker build -t mpc-lib .
+docker build -t mpc-lib-demo .
 ```
 
 Run docker:
 ```sh
-docker run -it mpc-lib
+docker run -it mpc-lib-demo
 ```
 
 Testing:
