@@ -19,10 +19,10 @@ make run-tests
 ### Generate address and signature
 Get `public key`, `message` and `signature` by running:
 ```sh
-node scripts/index.js
+node scripts/verify.js
 ```
 
-Go to [Etherscan Verified Signatures](https://etherscan.io/verifiedSignatures) to verify the signature
+Or go to [Etherscan Verified Signatures](https://etherscan.io/verifiedSignatures) to verify the signature
 
 
 ## Usage
