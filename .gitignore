@@ -31,3 +31,5 @@
 *.out
 *.app
 
+build-libbitcoin-system
+node_modules

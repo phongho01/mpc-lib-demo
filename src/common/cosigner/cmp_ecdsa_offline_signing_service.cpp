@@ -36,7 +36,6 @@ static inline std::string HexStr(const T itbegin, const T itend)
 
 void cmp_ecdsa_offline_signing_service::start_ecdsa_signature_preprocessing(const std::string& tenant_id, const std::string& key_id, const std::string& request_id, uint32_t start_index, uint32_t count, uint32_t total_count, const std::set<uint64_t>& players_ids, std::vector<cmp_mta_request>& mta_requests)
 {
-    LOG_INFO("Entering request id = %s", request_id.c_str());
     // verify tenant id
     if (tenant_id.compare(_key_persistency.get_tenantid_from_keyid(key_id)) != 0)
     {
@@ -83,7 +82,6 @@ void cmp_ecdsa_offline_signing_service::start_ecdsa_signature_preprocessing(cons
 
 uint64_t cmp_ecdsa_offline_signing_service::offline_mta_response(const std::string& request_id, const std::map<uint64_t, std::vector<cmp_mta_request>>& requests, cmp_mta_responses& response)
 {
-    LOG_INFO("Entering request id = %s", request_id.c_str());
     preprocessing_metadata metadata;
     _preprocessing_persistency.load_preprocessing_metadata(request_id, metadata);
     verify_tenant_id(_service, _key_persistency, metadata.key_id);
@@ -147,7 +145,6 @@ uint64_t cmp_ecdsa_offline_signing_service::offline_mta_response(const std::stri
 
 uint64_t cmp_ecdsa_offline_signing_service::offline_mta_verify(const std::string& request_id, const std::map<uint64_t, cmp_mta_responses>& mta_responses, std::vector<cmp_mta_deltas>& deltas)
 {
-    LOG_INFO("Entering request id = %s", request_id.c_str());
     preprocessing_metadata metadata;
     _preprocessing_persistency.load_preprocessing_metadata(request_id, metadata);
     verify_tenant_id(_service, _key_persistency, metadata.key_id);
@@ -220,7 +217,6 @@ uint64_t cmp_ecdsa_offline_signing_service::offline_mta_verify(const std::string
 
 uint64_t cmp_ecdsa_offline_signing_service::store_presigning_data(const std::string& request_id, const std::map<uint64_t, std::vector<cmp_mta_deltas>>& deltas, std::string& key_id)
 {
-    LOG_INFO("Entering request id = %s", request_id.c_str());
     preprocessing_metadata metadata;
     _preprocessing_persistency.load_preprocessing_metadata(request_id, metadata);
     verify_tenant_id(_service, _key_persistency, metadata.key_id);
@@ -263,7 +259,6 @@ uint64_t cmp_ecdsa_offline_signing_service::store_presigning_data(const std::str
 
     _preprocessing_persistency.delete_preprocessing_data(request_id);
     key_id = metadata.key_id;
-    LOG_INFO("Done preprocessing request %s, for key %s", request_id.c_str(), metadata.key_id.c_str());
     return my_id;
 }
 
@@ -271,7 +266,6 @@ void cmp_ecdsa_offline_signing_service::ecdsa_sign(const std::string& key_id, co
 {
     (void)players; // UNUSED
 
-    LOG_INFO("Entering txid = %s", txid.c_str());
     verify_tenant_id(_service, _key_persistency, key_id);
 
     cmp_key_metadata metadata;
@@ -360,8 +354,6 @@ void cmp_ecdsa_offline_signing_service::ecdsa_sign(const std::string& key_id, co
             throw cosigner_exception(cosigner_exception::INTERNAL_ERROR); 
         }
 
-        LOG_INFO("calculating sig with R' = R * %u", counter);
-        
         // clac sig.s = k(m + r * delta) +r(k * x + Chi)
         elliptic_curve256_scalar_t tmp;
         throw_cosigner_exception(GFp_curve_algebra_mul_scalars(curve, &tmp, sig.r, sizeof(elliptic_curve256_scalar_t), delta.data, sizeof(elliptic_curve256_scalar_t)));
@@ -386,7 +378,6 @@ void cmp_ecdsa_offline_signing_service::ecdsa_sign(const std::string& key_id, co
 
 uint64_t cmp_ecdsa_offline_signing_service::ecdsa_offline_signature(const std::string& key_id, const std::string& txid, cosigner_sign_algorithm algorithm, const std::map<uint64_t, std::vector<recoverable_signature>>& partial_sigs, std::vector<recoverable_signature>& sigs)
 {
-    LOG_INFO("Entering txid = %s", txid.c_str());
     if (partial_sigs.empty())
     {
         LOG_ERROR("Got 0 signatures for txid %s", txid.c_str());

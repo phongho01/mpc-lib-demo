@@ -5,6 +5,7 @@
 #include "test_common.h"
 #include "crypto/elliptic_curve_algebra/elliptic_curve256_algebra.h"
 #include "cosigner/cmp_key_persistency.h"
+#include "logging/logging_t.h"
 
 #include <string.h>
 #include <stdarg.h>
@@ -164,7 +165,7 @@ void create_secret(players_setup_info& players, cosigner_sign_algorithm type, co
     std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> algebra(create_algebra(type), elliptic_curve256_algebra_ctx_free);
     const size_t PUBKEY_SIZE = algebra->point_size(algebra.get());
 
-    std::cout << "keyid = " << keyid << std::endl;
+    std::cout << "KEY ID :" << keyid << std::endl;
     std::vector<uint64_t> players_ids;
 
 
@@ -176,10 +177,16 @@ void create_secret(players_setup_info& players, cosigner_sign_algorithm type, co
     }
 
     std::map<uint64_t, commitment> commitments;
+    int count = 0;
     for (auto i = services.begin(); i != services.end(); ++i)
     {
         commitment& commitment = commitments[i->first];
-        REQUIRE_NOTHROW(i->second->setup_service.generate_setup_commitments(keyid, TENANT_ID, type, players_ids, players_ids.size(), 0, {}, commitment));
+        // share_derivation_args derivation_args;
+        // byte_vector_t chaincode(32, 44);
+        // derivation_args.master_key_id = "50d02152-b60a-4cc4-961e-ebd324bf8a7b";
+        // derivation_args.chaincode = chaincode;
+        REQUIRE_NOTHROW(i->second->setup_service.generate_setup_commitments(keyid, TENANT_ID, type, players_ids, players_ids.size(), 0, {}, commitment, count));
+        count++;
     }
 
     std::map<uint64_t, setup_decommitment> decommitments;
@@ -226,10 +233,9 @@ void create_secret(players_setup_info& players, cosigner_sign_algorithm type, co
     }
     paillier_large_factor_proofs.clear();
     
-    std::cout << "public key: " << HexStr(pubkey, &pubkey[PUBKEY_SIZE]) << std::endl;
     for (auto i = players.begin(); i != players.end(); ++i)
     {
-        std::cout << "player " << i->first << " share: " << i->second.dump_key(keyid) << std::endl;
+        std::cout << "PLAYER " << i->first << " SHARE: " << i->second.dump_key(keyid) << std::endl;
     }
 }
 

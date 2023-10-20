@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "crypto/zero_knowledge_proof/schnorr.h"
 #include "logging/logging_t.h"
+#include <iostream>
 
 #include <openssl/sha.h>
 
@@ -40,12 +41,29 @@ static inline const char* to_string(cosigner_sign_algorithm algorithm)
     }
 }
 
+template<typename T>
+std::string HexStr(const T itbegin, const T itend)
+{
+    std::string rv;
+    static const char hexmap[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
+                                     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    rv.reserve((itend-itbegin)*3);
+    for(T it = itbegin; it < itend; ++it)
+    {
+        unsigned char val = (unsigned char)(*it);
+        rv.push_back(hexmap[val>>4]);
+        rv.push_back(hexmap[val&15]);
+    }
+
+    return rv;
+}
+
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_secp256k1(elliptic_curve256_new_secp256k1_algebra(), elliptic_curve256_algebra_ctx_free);
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_secp256r1(elliptic_curve256_new_secp256r1_algebra(), elliptic_curve256_algebra_ctx_free);
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_ed25519(elliptic_curve256_new_ed25519_algebra(), elliptic_curve256_algebra_ctx_free);
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_stark(elliptic_curve256_new_stark_algebra(), elliptic_curve256_algebra_ctx_free);
 
-void cmp_setup_service::generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment)
+void cmp_setup_service::generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment, const int count)
 {
     const size_t n = players_ids.size();
     if (!n || !t || t > n || n > UINT8_MAX)
@@ -79,7 +97,16 @@ void cmp_setup_service::generate_setup_commitments(const std::string& key_id, co
 
     auto algebra = get_algebra(algorithm);
 
+    // const uint8_t KEY1[] = { 0x8c, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf4, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+    //                     0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa4, 0xee, 0xdd, 0x97 };
+    // const uint8_t KEY2[] = { 0x10, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf3, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+    //                     0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa5, 0xee, 0xdd, 0x97 };
     elliptic_curve256_scalar_t key;
+    // if(count == 0) {
+    //     memcpy(key, KEY1, 32);
+    // } else {
+    //     memcpy(key, KEY2, 32);
+    // }
     if (!derive_from.master_key_id.empty())
     {
         _service.derive_initial_share(derive_from, algorithm, &key);
@@ -90,8 +117,10 @@ void cmp_setup_service::generate_setup_commitments(const std::string& key_id, co
 
         const size_t MAX_ATTEMPTS = 1024;
         size_t i = 0;
+        
         while (i < MAX_ATTEMPTS)
         {
+            
             _service.gen_random(sizeof(elliptic_curve256_scalar_t), key);
             status = algebra->reduce(algebra, &key, &key);
             if (status == ELLIPTIC_CURVE_ALGEBRA_SUCCESS)
@@ -164,13 +193,18 @@ void cmp_setup_service::generate_setup_proofs(const std::string& key_id, const s
     auto algebra = get_algebra(metadata.algorithm);
     setup_data temp_data;
     _key_persistency.load_setup_data(key_id, temp_data);
-        
-    memset(metadata.seed, 0, sizeof(commitments_sha256_t));
+    
+    const uint8_t KEY[] = { 0x8c, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf4, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+                        0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa4, 0xee, 0xdd, 0x97 };
+    memcpy(metadata.seed, KEY, sizeof(commitments_sha256_t));
+
+    // 140729068964784
     for (auto i = decommitments.begin(); i != decommitments.end(); ++i)
     {
-        xor_seed(metadata.seed, i->second.seed);
+        // xor_seed(metadata.seed, i->second.seed);
         temp_data.players_schnorr_R[i->first] = i->second.share.schnorr_R;
     }
+
 
     generate_setup_proofs(key_id, algebra, temp_data, metadata.seed, proofs);
     _key_persistency.store_setup_data(key_id, temp_data);
@@ -182,12 +216,14 @@ void cmp_setup_service::verify_setup_proofs(const std::string& key_id, const std
     verify_tenant_id(_service, _key_persistency, key_id);
     cmp_key_metadata metadata;
     _key_persistency.load_key_metadata(key_id, metadata, true);
+
     verify_setup_proofs(key_id, metadata, proofs);
     elliptic_curve256_point_t pubkey;
-    
+
     auto algebra = get_algebra(metadata.algorithm);
-    memcpy(pubkey, *algebra->infinity_point(algebra), sizeof(elliptic_curve256_point_t));
+    memcpy(pubkey, *algebra->infinity_point(algebra), sizeof(elliptic_curve256_point_t));\
     bool verify = memcmp(pubkey, metadata.public_key, sizeof(elliptic_curve256_point_t)) != 0; //if public key is set we should verify it
+    
     for (auto i = metadata.players_info.begin(); i != metadata.players_info.end(); ++i)
         throw_cosigner_exception(algebra->add_points(algebra, &pubkey, &pubkey, &i->second.public_share.data));
 
@@ -226,7 +262,7 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
     verify_tenant_id(_service, _key_persistency, key_id);
     cmp_key_metadata metadata;
     _key_persistency.load_key_metadata(key_id, metadata, true);
-    
+
     uint64_t my_id = _service.get_id_from_keyid(key_id);
     auxiliary_keys aux;
     _key_persistency.load_auxiliary_keys(key_id, aux);
@@ -236,6 +272,7 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
         LOG_ERROR("got %lu proofs but the key was created for %lu players", paillier_large_factor_proofs.size(), metadata.players_info.size());
         throw cosigner_exception(cosigner_exception::INVALID_PARAMETERS);
     }
+
 
     for (auto i = paillier_large_factor_proofs.begin(); i != paillier_large_factor_proofs.end(); ++i)
     {
@@ -255,8 +292,9 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
             LOG_ERROR("missing proof from player %lu", i->first);
             throw cosigner_exception(cosigner_exception::INVALID_PARAMETERS);
         }
-        
+
         auto aad = build_aad(key_id, i->first, metadata.seed);
+
         auto status = range_proof_paillier_large_factors_zkp_verify(player_it->second.paillier.get(), aux.ring_pedersen.get(), aad.data(), aad.size(), proof_it->second.data(), proof_it->second.size());
         if (status != ZKP_SUCCESS)
         {
@@ -264,7 +302,6 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
             throw_cosigner_exception(status);
         }
     }
-    
     auto algebra = get_algebra(metadata.algorithm);
     public_key.assign((const char*)metadata.public_key, algebra->point_size(algebra));
     _key_persistency.delete_temporary_key_data(key_id);
@@ -273,7 +310,6 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
     elliptic_curve_scalar key;
     _key_persistency.load_key(key_id, algo, key.data);
 
-    LOG_INFO("backuping keyid %s..", key_id.c_str());
     if (!_service.backup_key(key_id, metadata.algorithm, key.data, metadata, aux))
     {
         LOG_ERROR("failed to backup key id %s", key_id.c_str());
@@ -282,7 +318,6 @@ void cmp_setup_service::create_secret(const std::string& key_id, const std::map<
     }
 
     algorithm = algo;
-    LOG_INFO("key share created for keyid %s, and algorithm %s", key_id.c_str(), to_string(metadata.algorithm));
 }
 
 void cmp_setup_service::add_user_request(const std::string& key_id, cosigner_sign_algorithm algorithm, const std::string& new_key_id, const std::vector<uint64_t>& players_ids, uint8_t t, add_user_data& data)
@@ -486,7 +521,6 @@ void cmp_setup_service::generate_setup_commitments(const std::string& key_id, co
     _key_persistency.store_keyid_tenant_id(key_id, tenant_id);
     _key_persistency.store_auxiliary_keys(key_id, aux);
     _key_persistency.store_key(key_id, algorithm, key, ttl);
-    LOG_INFO("created share for key %s n = %d", key_id.c_str(), n);
 }
 
 auxiliary_keys cmp_setup_service::create_auxiliary_keys()

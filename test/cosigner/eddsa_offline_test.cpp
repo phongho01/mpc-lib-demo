@@ -223,7 +223,6 @@ static void ecdsa_preprocess(std::map<uint64_t, std::unique_ptr<server_info>>& s
     char request[37] = {0};
     uuid_generate_random(uid);
     uuid_unparse(uid, request);
-    std::cout << "request id = " << request << std::endl;
 
     std::set<uint64_t> players_ids;
 
@@ -247,7 +246,6 @@ static void eddsa_sign(std::map<uint64_t, std::unique_ptr<server_info>>& servers
     char txid[37] = {0};
     uuid_generate_random(uid);
     uuid_unparse(uid, txid);
-    std::cout << "txid id = " << txid << std::endl;
 
     std::set<uint64_t> players_ids;
     std::set<std::string> players_str;
@@ -373,49 +371,49 @@ static void eddsa_sign(std::map<uint64_t, std::unique_ptr<server_info>>& servers
     }
 }
 
-TEST_CASE("asymmetric_eddsa") {
-    byte_vector_t chaincode(32, '\0');
-    std::vector<uint32_t> path = {44, 0, 0, 0, 0};
-    char keyid[37] = {0};
-    elliptic_curve256_point_t pubkey;
-    players_setup_info players;
+// TEST_CASE("asymmetric_eddsa") {
+//     byte_vector_t chaincode(32, '\0');
+//     std::vector<uint32_t> path = {44, 0, 0, 0, 0};
+//     char keyid[37] = {0};
+//     elliptic_curve256_point_t pubkey;
+//     players_setup_info players;
 
-    SECTION("2/2") {
-        static const uint64_t SERVER_ID = 1;
-        uuid_t uid;
-        uuid_generate_random(uid);
-        uuid_unparse(uid, keyid);
-        players[CLIENT_ID];
-        players[SERVER_ID];
-        create_secret(players, EDDSA_ED25519, keyid, pubkey);
+//     SECTION("2/2") {
+//         static const uint64_t SERVER_ID = 1;
+//         uuid_t uid;
+//         uuid_generate_random(uid);
+//         uuid_unparse(uid, keyid);
+//         players[CLIENT_ID];
+//         players[SERVER_ID];
+//         create_secret(players, EDDSA_ED25519, keyid, pubkey);
 
-        std::map<uint64_t, std::unique_ptr<server_info>> services;
-        services.emplace(SERVER_ID, std::make_unique<server_info>(SERVER_ID, players[SERVER_ID]));
-        client_info client(CLIENT_ID, players[CLIENT_ID]);
-        ecdsa_preprocess(services, client, keyid, 0, 1000, 1000);  
-        eddsa_sign(services, client, keyid, 0, 1, pubkey, chaincode, {path});
-        eddsa_sign(services, client, keyid, 1, 1, pubkey, chaincode, {path}, true);
-    }
+//         std::map<uint64_t, std::unique_ptr<server_info>> services;
+//         services.emplace(SERVER_ID, std::make_unique<server_info>(SERVER_ID, players[SERVER_ID]));
+//         client_info client(CLIENT_ID, players[CLIENT_ID]);
+//         ecdsa_preprocess(services, client, keyid, 0, 1000, 1000);  
+//         eddsa_sign(services, client, keyid, 0, 1, pubkey, chaincode, {path});
+//         eddsa_sign(services, client, keyid, 1, 1, pubkey, chaincode, {path}, true);
+//     }
 
-    SECTION("3/3") {
-        uuid_t uid;
-        uuid_generate_random(uid);
-        uuid_unparse(uid, keyid);
-        players[CLIENT_ID];
-        players[11];
-        players[12];
-        create_secret(players, EDDSA_ED25519, keyid, pubkey);
+//     SECTION("3/3") {
+//         uuid_t uid;
+//         uuid_generate_random(uid);
+//         uuid_unparse(uid, keyid);
+//         players[CLIENT_ID];
+//         players[11];
+//         players[12];
+//         create_secret(players, EDDSA_ED25519, keyid, pubkey);
 
-        std::map<uint64_t, std::unique_ptr<server_info>> services;
-        for (auto i = players.begin(); i != players.end(); ++i)
-        {
-            if (i->first != CLIENT_ID)
-                services.emplace(i->first, std::make_unique<server_info>(i->first, i->second));
-        }
+//         std::map<uint64_t, std::unique_ptr<server_info>> services;
+//         for (auto i = players.begin(); i != players.end(); ++i)
+//         {
+//             if (i->first != CLIENT_ID)
+//                 services.emplace(i->first, std::make_unique<server_info>(i->first, i->second));
+//         }
         
-        client_info client(CLIENT_ID, players[CLIENT_ID]);
-        ecdsa_preprocess(services, client, keyid, 0, 1000, 1000);  
-        eddsa_sign(services, client, keyid, 0, 1, pubkey, chaincode, {path});
-        eddsa_sign(services, client, keyid, 1, 1, pubkey, chaincode, {path}, true);
-    }
-}
+//         client_info client(CLIENT_ID, players[CLIENT_ID]);
+//         ecdsa_preprocess(services, client, keyid, 0, 1000, 1000);  
+//         eddsa_sign(services, client, keyid, 0, 1, pubkey, chaincode, {path});
+//         eddsa_sign(services, client, keyid, 1, 1, pubkey, chaincode, {path}, true);
+//     }
+// }

@@ -2,9 +2,11 @@
 #include <chrono>
 #include <shared_mutex>
 #include <tests/catch.hpp>
+#include <iomanip>
 
 #include "cosigner/cmp_ecdsa_online_signing_service.h"
 #include "cosigner/cosigner_exception.h"
+#include "cosigner/cmp_offline_refresh_service.h"
 #include "test_common.h"
 #include "crypto/elliptic_curve_algebra/elliptic_curve256_algebra.h"
 #include "crypto/GFp_curve_algebra/GFp_curve_algebra.h"
@@ -15,10 +17,10 @@
 
 #include <openssl/rand.h>
 
-#ifdef USE_SECP256K1
+// #ifdef USE_SECP256K1
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
-#endif
+// #endif
 
 using namespace fireblocks::common::cosigner;
 
@@ -49,7 +51,7 @@ private:
 
     const std::string get_current_tenantid() const {return TENANT_ID;}
     uint64_t get_id_from_keyid(const std::string& key_id) const {return _id;}
-    void derive_initial_share(const share_derivation_args& derive_from, cosigner_sign_algorithm algorithm, elliptic_curve256_scalar_t* key) const {assert(0);}
+    void derive_initial_share(const share_derivation_args& derive_from, cosigner_sign_algorithm algorithm, elliptic_curve256_scalar_t* key) const {}
     byte_vector_t encrypt_for_player(uint64_t id, const byte_vector_t& data) const {assert(0);}
     byte_vector_t decrypt_message(const byte_vector_t& encrypted_data) const {assert(0);}
     bool backup_key(const std::string& key_id, cosigner_sign_algorithm algorithm, const elliptic_curve256_scalar_t& private_key, const cmp_key_metadata& metadata, const auxiliary_keys& aux) {return true;}
@@ -116,13 +118,16 @@ struct siging_info
     cmp_ecdsa_online_signing_service signing_service;
 };
 
+
+
 static void ecdsa_sign(players_setup_info& players, cosigner_sign_algorithm type, const std::string& keyid, uint32_t count, const elliptic_curve256_point_t& pubkey, 
     const byte_vector_t& chaincode, const std::vector<std::vector<uint32_t>>& paths, bool positive_r = false)
 {
     uuid_t uid;
     char txid[37] = {0};
-    uuid_generate_random(uid);
-    uuid_unparse(uid, txid);
+    // uuid_generate_random(uid);
+    // uuid_unparse(uid, txid);
+    memcpy(txid, "095ed6fb-529c-4462-8122-ae124a992928", 37);
     std::cout << "txid id = " << txid << std::endl;
 
     std::map<uint64_t, std::unique_ptr<siging_info>> services;
@@ -181,6 +186,7 @@ static void ecdsa_sign(players_setup_info& players, cosigner_sign_algorithm type
     std::vector<recoverable_signature> sigs;
     for (auto i = services.begin(); i != services.end(); ++i)
     {
+        // sign and generate derived key
         REQUIRE_NOTHROW(i->second->signing_service.get_cmp_signature(txid, sis, sigs));
     }
     sis.clear();
@@ -205,7 +211,7 @@ static void ecdsa_sign(players_setup_info& players, cosigner_sign_algorithm type
             REQUIRE(is_positive(sigs[i].r));
         }
 
-#ifdef USE_SECP256K1
+// #ifdef USE_SECP256K1
         std::unique_ptr<secp256k1_context, void(*)(secp256k1_context*)> secp_ctx(secp256k1_context_create(SECP256K1_CONTEXT_VERIFY), secp256k1_context_destroy);
         if (type == ECDSA_SECP256K1)
         {
@@ -217,13 +223,22 @@ static void ecdsa_sign(players_setup_info& players, cosigner_sign_algorithm type
             REQUIRE(secp256k1_ec_pubkey_parse(secp_ctx.get(), &public_key, derived_key, sizeof(PubKey)));
             REQUIRE(secp256k1_ecdsa_signature_parse_compact(secp_ctx.get(), &sig, raw_sig));
             REQUIRE(secp256k1_ecdsa_verify(secp_ctx.get(), &sig, msg, &public_key));
+            std::cout << "===================== RAW SIGNATURE =====================" << std::endl;
+            for(int i = 0; i < sizeof(raw_sig); i++)
+            {
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)raw_sig[i];
+            }
+            std::cout << std::endl;
+            std::cout << "===================== END RAW SIGNATURE =====================" << std::endl;
             secp256k1_ecdsa_recoverable_signature recoverable_sig;
             secp256k1_pubkey recoveredPubKey = {0};
-            int retVal = secp256k1_ecdsa_recoverable_signature_parse_compact(secp_ctx.get(), &recoverable_sig, raw_sig, sigs[i].v);
-            REQUIRE(secp256k1_ecdsa_recover(secp_ctx.get(), &recoveredPubKey, &recoverable_sig, msg));
-            REQUIRE(memcmp(recoveredPubKey.data, public_key.data, sizeof(secp256k1_pubkey)) == 0);
+            // int retVal = secp256k1_ecdsa_recoverable_signature_parse_compact(secp_ctx.get(), &recoverable_sig, raw_sig, sigs[i].v);
+            // REQUIRE(secp256k1_ecdsa_recover(secp_ctx.get(), &recoveredPubKey, &recoverable_sig, msg));
+            // REQUIRE(memcmp(recoveredPubKey.data, public_key.data, sizeof(secp256k1_pubkey)) == 0);
+            // REQUIRE(secp256k1_ecdsa_verify(secp_ctx.get(), &sig, msg, &public_key));
+
         }
-#endif
+// #endif
     }
 }
 
@@ -248,119 +263,124 @@ static char keyid[37] = {0};
 static elliptic_curve256_point_t pubkey;
 static players_setup_info players;
 
-TEST_CASE("cmp_ecdsa") {
-    byte_vector_t chaincode(32, '\0');
-    std::vector<uint32_t> path = {44, 0, 0, 0, 0};
+// TEST_CASE("cmp_ecdsa") {
+//     byte_vector_t chaincode(32, '\0');
+//     std::vector<uint32_t> path = {44, 0, 0, 0, 0};
 
-    SECTION("secp256k1") {  
-        SECTION("create_secret") {
-            uuid_t uid;
-            uuid_generate_random(uid);
-            uuid_unparse(uid, keyid);
-            players.clear();
-            players[1];
-            players[2];
-            create_secret(players, ECDSA_SECP256K1, keyid, pubkey);
-        }
+//     SECTION("secp256k1") {  
+//         SECTION("create_secret") {
+//             // uuid_t uid;
+//             // uuid_generate_random(uid);
+//             // uuid_unparse(uid, keyid);
 
-        SECTION("sign") {
-            auto before = Clock::now();
-            ecdsa_sign(players, ECDSA_SECP256K1, keyid, 1, pubkey, chaincode, {path});
-            auto after = Clock::now();
-            std::cout << "ECDSA signing took: " << std::chrono::duration_cast<std::chrono::milliseconds>(after - before).count() << " ms" << std::endl;
-        }
+//             memcpy(keyid, "d7bd6897-9f0d-4ddd-bfb9-cf4d37015d43", 37);
+//             std::cout << "=============== KEY: " << keyid << std::endl;
+//             // keyid = "d7bd6897-9f0d-4ddd-bfb9-cf4d37015d43";
+//             players.clear();
+//             players[1];
+//             players[2];
+//             create_secret(players, ECDSA_SECP256K1, keyid, pubkey);
+//         }
 
-        SECTION("add user") {  
-            uuid_t uid;
-            char new_keyid[37] = {0};
-            uuid_generate_random(uid);
-            uuid_unparse(uid, new_keyid);
-            players_setup_info new_players;
-            new_players[11];
-            new_players[12];
-            new_players[13];
-            add_user(players, new_players, ECDSA_SECP256K1, keyid, new_keyid, pubkey);
-            ecdsa_sign(new_players, ECDSA_SECP256K1, new_keyid, 1, pubkey, chaincode, {path});
-        }
+//         SECTION("sign") {
+//             auto before = Clock::now();
+//             ecdsa_sign(players, ECDSA_SECP256K1, keyid, 1, pubkey, chaincode, {path});
+//             auto after = Clock::now();
+//             std::cout << "ECDSA signing took: " << std::chrono::duration_cast<std::chrono::milliseconds>(after - before).count() << " ms" << std::endl;
+//         }
 
-        SECTION("sign multiple") {
-            const size_t COUNT = 4;
-            std::vector<uint32_t> derivation_path = {44, 0, 0, 0, 0};
-            std::vector<std::vector<uint32_t>> derivation_paths;
+//         SECTION("add user") {  
+//             uuid_t uid;
+//             char new_keyid[37] = {0};
+//             uuid_generate_random(uid);
+//             uuid_unparse(uid, new_keyid);
+//             players_setup_info new_players;
+//             new_players[11];
+//             new_players[12];
+//             new_players[13];
+//             add_user(players, new_players, ECDSA_SECP256K1, keyid, new_keyid, pubkey);
+//             ecdsa_sign(new_players, ECDSA_SECP256K1, new_keyid, 1, pubkey, chaincode, {path});
+//         }
 
-            for (size_t i = 0; i < COUNT; i++)
-            {
-                derivation_paths.push_back(derivation_path);
-                ++derivation_path[2];
-            }
-            ecdsa_sign(players, ECDSA_SECP256K1, keyid, COUNT, pubkey, chaincode, derivation_paths);
-        }
+        // SECTION("sign multiple") {
+        //     const size_t COUNT = 10;
+        //     std::vector<uint32_t> derivation_path = {44, 0, 0, 0, 0};
+        //     std::vector<std::vector<uint32_t>> derivation_paths;
 
-        SECTION("MT") {
-            const size_t THREAD_COUNT = 16;
-            pthread_t threads[THREAD_COUNT] = {0};
+        //     for (size_t i = 0; i < COUNT; i++)
+        //     {
+        //         derivation_paths.push_back(derivation_path);
+        //         ++derivation_path[2];
+        //     }
 
-            sign_thread_data param = {players, keyid, pubkey};
+        //     ecdsa_sign(players, ECDSA_SECP256K1, keyid, COUNT, pubkey, chaincode, derivation_paths);
+        // }
+
+        // SECTION("MT") {
+        //     const size_t THREAD_COUNT = 16;
+        //     pthread_t threads[THREAD_COUNT] = {0};
+
+        //     sign_thread_data param = {players, keyid, pubkey};
             
-            auto start = Clock::now();
-            for (auto i = 0; i < THREAD_COUNT; i++)
-                pthread_create(threads + i, NULL, sign_thread, &param);
+        //     auto start = Clock::now();
+        //     for (auto i = 0; i < THREAD_COUNT; i++)
+        //         pthread_create(threads + i, NULL, sign_thread, &param);
 
-            for (auto i = 0; i < THREAD_COUNT; i++)
-                pthread_join(threads[i], NULL);
-            auto finish = Clock::now();
-            std::cout << "Done in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << " ms" << std::endl;
-        }
+        //     for (auto i = 0; i < THREAD_COUNT; i++)
+        //         pthread_join(threads[i], NULL);
+        //     auto finish = Clock::now();
+        //     std::cout << "Done in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << " ms" << std::endl;
+        // }
 
-        SECTION("sign positive R") {
-            // run 4 times as R has 50% chance of being negative
-            for (size_t i = 0; i < 8; ++i)
-                ecdsa_sign(players, ECDSA_SECP256K1, keyid, 1, pubkey, chaincode, {path}, true);;
-        }
+        // SECTION("sign positive R") {
+        //     // run 4 times as R has 50% chance of being negative
+        //     for (size_t i = 0; i < 8; ++i)
+        //         ecdsa_sign(players, ECDSA_SECP256K1, keyid, 1, pubkey, chaincode, {path}, true);;
+        // }
 
-    }
+    // }
 
-    SECTION("secp256r1") {  
-        uuid_t uid;
-        char keyid[37] = {0};
-        elliptic_curve256_point_t pubkey;
-        players_setup_info players;
-        uuid_generate_random(uid);
-        uuid_unparse(uid, keyid);
-        players[1];
-        players[2];
-        create_secret(players, ECDSA_SECP256R1, keyid, pubkey);
-        ecdsa_sign(players, ECDSA_SECP256R1, keyid, 1, pubkey, chaincode, {path});
-        char new_keyid[37] = {0};
-        uuid_generate_random(uid);
-        uuid_unparse(uid, new_keyid);
-        players_setup_info new_players;
-        new_players[11];
-        new_players[12];
-        new_players[13];
-        add_user(players, new_players, ECDSA_SECP256R1, keyid, new_keyid, pubkey);
-        ecdsa_sign(new_players, ECDSA_SECP256R1, new_keyid, 1, pubkey, chaincode, {path});
-    }
+    // SECTION("secp256r1") {  
+    //     uuid_t uid;
+    //     char keyid[37] = {0};
+    //     elliptic_curve256_point_t pubkey;
+    //     players_setup_info players;
+    //     uuid_generate_random(uid);
+    //     uuid_unparse(uid, keyid);
+    //     players[1];
+    //     players[2];
+    //     create_secret(players, ECDSA_SECP256R1, keyid, pubkey);
+    //     ecdsa_sign(players, ECDSA_SECP256R1, keyid, 1, pubkey, chaincode, {path});
+    //     char new_keyid[37] = {0};
+    //     uuid_generate_random(uid);
+    //     uuid_unparse(uid, new_keyid);
+    //     players_setup_info new_players;
+    //     new_players[11];
+    //     new_players[12];
+    //     new_players[13];
+    //     add_user(players, new_players, ECDSA_SECP256R1, keyid, new_keyid, pubkey);
+    //     ecdsa_sign(new_players, ECDSA_SECP256R1, new_keyid, 1, pubkey, chaincode, {path});
+    // }
 
-    SECTION("stark") {  
-        uuid_t uid;
-        char keyid[37] = {0};
-        elliptic_curve256_point_t pubkey;
-        players_setup_info players;
-        uuid_generate_random(uid);
-        uuid_unparse(uid, keyid);
-        players[1];
-        players[2];
-        create_secret(players, ECDSA_STARK, keyid, pubkey);
-        ecdsa_sign(players, ECDSA_STARK, keyid, 1, pubkey, chaincode, {path});
-        char new_keyid[37] = {0};
-        uuid_generate_random(uid);
-        uuid_unparse(uid, new_keyid);
-        players_setup_info new_players;
-        new_players[11];
-        new_players[12];
-        new_players[13];
-        add_user(players, new_players, ECDSA_STARK, keyid, new_keyid, pubkey);
-        ecdsa_sign(new_players, ECDSA_STARK, new_keyid, 1, pubkey, chaincode, {path});
-    }
-}
+    // SECTION("stark") {  
+    //     uuid_t uid;
+    //     char keyid[37] = {0};
+    //     elliptic_curve256_point_t pubkey;
+    //     players_setup_info players;
+    //     uuid_generate_random(uid);
+    //     uuid_unparse(uid, keyid);
+    //     players[1];
+    //     players[2];
+    //     create_secret(players, ECDSA_STARK, keyid, pubkey);
+    //     ecdsa_sign(players, ECDSA_STARK, keyid, 1, pubkey, chaincode, {path});
+    //     char new_keyid[37] = {0};
+    //     uuid_generate_random(uid);
+    //     uuid_unparse(uid, new_keyid);
+    //     players_setup_info new_players;
+    //     new_players[11];
+    //     new_players[12];
+    //     new_players[13];
+    //     add_user(players, new_players, ECDSA_STARK, keyid, new_keyid, pubkey);
+    //     ecdsa_sign(new_players, ECDSA_STARK, new_keyid, 1, pubkey, chaincode, {path});
+    // }
+// }

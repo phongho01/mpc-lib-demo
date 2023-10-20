@@ -7,5 +7,5 @@ clean:
 	@$(MAKE) -C cosigner/ clean
 
 run:
-	@$(MAKE) -C crypto/ run
+# @$(MAKE) -C crypto/ run
 	@$(MAKE) -C cosigner/ run

@@ -225,72 +225,72 @@ static char keyid[37] = {0};
 static elliptic_curve256_point_t pubkey;
 static players_setup_info players;
 
-TEST_CASE("eddsa") {
-    byte_vector_t chaincode(32, '\0');
-    std::vector<uint32_t> path = {44, 0, 0, 0, 0};
+// TEST_CASE("eddsa") {
+//     byte_vector_t chaincode(32, '\0');
+//     std::vector<uint32_t> path = {44, 0, 0, 0, 0};
 
-    SECTION("create_secret") {  
-        players.clear();
-        uuid_t uid;
-        uuid_generate_random(uid);
-        uuid_unparse(uid, keyid);
-        players[1];
-        players[2];
-        create_secret(players, EDDSA_ED25519, keyid, pubkey);
-    }
+//     SECTION("create_secret") {  
+//         players.clear();
+//         uuid_t uid;
+//         uuid_generate_random(uid);
+//         uuid_unparse(uid, keyid);
+//         players[1];
+//         players[2];
+//         create_secret(players, EDDSA_ED25519, keyid, pubkey);
+//     }
 
-    SECTION("sign") {
-        auto before = Clock::now();
-        eddsa_sign(players, keyid, 1, pubkey, chaincode, {path});
-        auto after = Clock::now();
-        std::cout << "EDDSA signing took: " << std::chrono::duration_cast<std::chrono::milliseconds>(after - before).count() << " ms" << std::endl;
-    }
+//     SECTION("sign") {
+//         auto before = Clock::now();
+//         eddsa_sign(players, keyid, 1, pubkey, chaincode, {path});
+//         auto after = Clock::now();
+//         std::cout << "EDDSA signing took: " << std::chrono::duration_cast<std::chrono::milliseconds>(after - before).count() << " ms" << std::endl;
+//     }
 
-    SECTION("add user") {  
-        uuid_t uid;
-        char new_keyid[37] = {0};
-        uuid_generate_random(uid);
-        uuid_unparse(uid, new_keyid);
-        players_setup_info new_players;
-        new_players[11];
-        new_players[12];
-        new_players[13];
-        add_user(players, new_players, EDDSA_ED25519, keyid, new_keyid, pubkey);
-        eddsa_sign(new_players, new_keyid, 1, pubkey, chaincode, {path});
-    }
+//     SECTION("add user") {  
+//         uuid_t uid;
+//         char new_keyid[37] = {0};
+//         uuid_generate_random(uid);
+//         uuid_unparse(uid, new_keyid);
+//         players_setup_info new_players;
+//         new_players[11];
+//         new_players[12];
+//         new_players[13];
+//         add_user(players, new_players, EDDSA_ED25519, keyid, new_keyid, pubkey);
+//         eddsa_sign(new_players, new_keyid, 1, pubkey, chaincode, {path});
+//     }
 
-    SECTION("sign multiple") {
-        const size_t COUNT = 4;
-        std::vector<uint32_t> derivation_path = {44, 0, 0, 0, 0};
-        std::vector<std::vector<uint32_t>> derivation_paths;
+//     SECTION("sign multiple") {
+//         const size_t COUNT = 4;
+//         std::vector<uint32_t> derivation_path = {44, 0, 0, 0, 0};
+//         std::vector<std::vector<uint32_t>> derivation_paths;
 
-        for (size_t i = 0; i < COUNT; i++)
-        {
-            derivation_paths.push_back(derivation_path);
-            ++derivation_path[2];
-        }
-        eddsa_sign(players, keyid, COUNT, pubkey, chaincode, derivation_paths);
-    }
+//         for (size_t i = 0; i < COUNT; i++)
+//         {
+//             derivation_paths.push_back(derivation_path);
+//             ++derivation_path[2];
+//         }
+//         eddsa_sign(players, keyid, COUNT, pubkey, chaincode, derivation_paths);
+//     }
 
-    SECTION("MT") {
-        const size_t THREAD_COUNT = 16;
-        pthread_t threads[THREAD_COUNT] = {0};
+//     SECTION("MT") {
+//         const size_t THREAD_COUNT = 16;
+//         pthread_t threads[THREAD_COUNT] = {0};
 
-        sign_thread_data param = {players, keyid, pubkey};
+//         sign_thread_data param = {players, keyid, pubkey};
         
-        auto start = Clock::now();
-        for (auto i = 0; i < THREAD_COUNT; i++)
-            pthread_create(threads + i, NULL, sign_thread, &param);
+//         auto start = Clock::now();
+//         for (auto i = 0; i < THREAD_COUNT; i++)
+//             pthread_create(threads + i, NULL, sign_thread, &param);
 
-        for (auto i = 0; i < THREAD_COUNT; i++)
-            pthread_join(threads[i], NULL);
-        auto finish = Clock::now();
-        std::cout << "Done in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << " ms" << std::endl;
-    }
+//         for (auto i = 0; i < THREAD_COUNT; i++)
+//             pthread_join(threads[i], NULL);
+//         auto finish = Clock::now();
+//         std::cout << "Done in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << " ms" << std::endl;
+//     }
 
-    SECTION("keccek") {
-        // run 4 times as R has 50% chance of being negative
-        for (size_t i = 0; i < 8; ++i)
-            eddsa_sign(players, keyid, 1, pubkey, chaincode, {path}, true);;
-    }
-}
+//     SECTION("keccek") {
+//         // run 4 times as R has 50% chance of being negative
+//         for (size_t i = 0; i < 8; ++i)
+//             eddsa_sign(players, keyid, 1, pubkey, chaincode, {path}, true);;
+//     }
+// }

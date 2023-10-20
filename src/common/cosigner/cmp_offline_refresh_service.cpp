@@ -33,7 +33,7 @@ void cmp_offline_refresh_service::refresh_key_request(const std::string& tenant_
 
     if (!metadata.ttl)
     {
-        LOG_WARN("Got key refresh request for key %s but this key has no ttl, this is strange", key_id.c_str());
+        // LOG_WARN("Got key refresh request for key %s but this key has no ttl, this is strange", key_id.c_str());
     }
 
     if (players_ids.size() > metadata.n)
@@ -207,7 +207,7 @@ void cmp_offline_refresh_service::refresh_key_fast_ack(const std::string& tenant
     }
     _refresh_key_persistency.commit(key_id, request_id);
 
-    LOG_INFO("backuping keyid %s..", key_id.c_str());
+    // LOG_INFO("backuping keyid %s..", key_id.c_str());
     cmp_key_metadata metadata;
     _key_persistency.load_key_metadata(key_id, metadata, false);
     elliptic_curve_scalar key;
