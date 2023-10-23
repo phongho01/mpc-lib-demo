@@ -75,7 +75,7 @@ public:
     };
 
     cmp_setup_service(platform_service& service, setup_key_persistency& key_persistency) : _service(service), _key_persistency(key_persistency) {}
-    void generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment);
+    void generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment, const int count);
     void store_setup_commitments(const std::string& key_id, const std::map<uint64_t, commitment>& commitments, setup_decommitment& decommitment);
     void generate_setup_proofs(const std::string& key_id, const std::map<uint64_t, setup_decommitment>& decommitments, setup_zk_proofs& proofs);
     void verify_setup_proofs(const std::string& key_id, const std::map<uint64_t, setup_zk_proofs>& proofs, std::map<uint64_t, byte_vector_t>& paillier_large_factor_proofs);

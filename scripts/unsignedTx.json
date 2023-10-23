@@ -1,0 +1,10 @@
+{
+  "to": "0x4F9EF07A6DDF73494D2fF51A8f7B78e9c5815eb2",
+  "value": { "type": "BigNumber", "hex": "0x02540be400" },
+  "type": 2,
+  "maxFeePerGas": "0x59682f1e",
+  "maxPriorityFeePerGas": "0x59682f00",
+  "nonce": 5,
+  "gasLimit": "0x5208",
+  "chainId": 80001
+}

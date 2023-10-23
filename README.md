@@ -1,34 +1,27 @@
-## Quick Start
-
-### Building and Testing
-Build docker with the command:
+## How to run
+1. Build docker:
 ```sh
-docker build -t mpc-lib-demo .
+docker build -t mpc-cmp-demo .
 ```
 
-Run docker:
+2. Run docker:
 ```sh
-docker run -it mpc-lib-demo
+docker run -it mpc-cmp-demo
 ```
 
-Testing:
+3. Create transaction:
+```sh
+node scripts/create-transaction.js
+```
+
+4. Generate key share and sign transaction:
 ```sh
 make run-tests
 ```
 
-### Generate address and signature
-Get `public key`, `message` and `signature` by running:
+5. Submit transaction:
 ```sh
-node scripts/verify.js
+node scripts/submit-transaction.js
 ```
 
-Or go to [Etherscan Verified Signatures](https://etherscan.io/verifiedSignatures) to verify the signature
-
-
-## Usage
-
-A few examples for running a full signing process can be found in the [tests section](https://github.com/fireblocks/mpc-lib/tree/main/test/cosigner)
-
-## Security
-
-Please see our dedicated [security policy](SECURITY.md) page.
+6. Copy `hash` property in `Transaction Receipt` object and check transaction on Polygon Testnet: https://mumbai.polygonscan.com

@@ -355,7 +355,12 @@ static void ecdsa_sign(std::map<uint64_t, std::unique_ptr<offline_siging_info>>&
     memcpy(data.chaincode, chaincode.data(), sizeof(HDChaincode));
     uint8_t hash_msg[32];
     // hello world
-    memcpy(hash_msg, fromhex("d9eba16ed0ecae432b71fe008c98cc872bb4cc214d3220a36f365326cf807d68"), 32);
+    std::string messageHash;
+    std::ifstream MyReadFile("../../scripts/messageHash.txt");
+    std::getline (MyReadFile, messageHash);
+    std::cout << "MESSAGE HASH:" << messageHash.c_str() << std::endl;
+    MyReadFile.close();
+    memcpy(hash_msg, fromhex(messageHash.c_str()), 32);
     // const uint8_t KEY[] = { 0x8c, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf4, 0x9d, 0x91, 0x38, 0xd8, 0x37,
                         // 0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa4, 0xee, 0xdd, 0x97 };
     for (size_t i = 0; i < count; i++)

@@ -181,11 +181,7 @@ void create_secret(players_setup_info& players, cosigner_sign_algorithm type, co
     for (auto i = services.begin(); i != services.end(); ++i)
     {
         commitment& commitment = commitments[i->first];
-        // share_derivation_args derivation_args;
-        // byte_vector_t chaincode(32, 44);
-        // derivation_args.master_key_id = "50d02152-b60a-4cc4-961e-ebd324bf8a7b";
-        // derivation_args.chaincode = chaincode;
-        REQUIRE_NOTHROW(i->second->setup_service.generate_setup_commitments(keyid, TENANT_ID, type, players_ids, players_ids.size(), 0, {}, commitment));
+        REQUIRE_NOTHROW(i->second->setup_service.generate_setup_commitments(keyid, TENANT_ID, type, players_ids, players_ids.size(), 0, {}, commitment, count));
         count++;
     }
 

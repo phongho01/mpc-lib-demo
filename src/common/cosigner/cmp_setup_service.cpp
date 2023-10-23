@@ -63,7 +63,7 @@ const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_ed25519(elliptic_curve256_new_ed25519_algebra(), elliptic_curve256_algebra_ctx_free);
 const std::unique_ptr<elliptic_curve256_algebra_ctx_t, void(*)(elliptic_curve256_algebra_ctx_t*)> cmp_setup_service::_stark(elliptic_curve256_new_stark_algebra(), elliptic_curve256_algebra_ctx_free);
 
-void cmp_setup_service::generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment)
+void cmp_setup_service::generate_setup_commitments(const std::string& key_id, const std::string& tenant_id, cosigner_sign_algorithm algorithm, const std::vector<uint64_t>& players_ids, uint8_t t, uint64_t ttl, const share_derivation_args& derive_from, commitment& setup_commitment, const int count)
 {
     const size_t n = players_ids.size();
     if (!n || !t || t > n || n > UINT8_MAX)
@@ -97,11 +97,20 @@ void cmp_setup_service::generate_setup_commitments(const std::string& key_id, co
 
     auto algebra = get_algebra(algorithm);
 
-    // const uint8_t KEY1[] = { 0x8c, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf4, 0x9d, 0x91, 0x38, 0xd8, 0x37,
-    //                     0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa4, 0xee, 0xdd, 0x97 };
-    // const uint8_t KEY2[] = { 0x10, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf3, 0x9d, 0x91, 0x38, 0xd8, 0x37,
-    //                     0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa5, 0xee, 0xdd, 0x97 };
+    const uint8_t KEY1[] = { 0x8c, 0xda, 0xbe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf4, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+                        0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa4, 0xee, 0xdd, 0x97 };
+    const uint8_t KEY2[] = { 0x10, 0xda, 0xbe, 0xfd, 0x4c, 0x8a, 0x62, 0x20, 0x5a, 0xd4, 0xf3, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+                        0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa5, 0xee, 0xdd, 0x97 };
+    const uint8_t KEY3[] = { 0x15, 0xdc, 0xfe, 0x9d, 0x4c, 0x87, 0x62, 0x20, 0x5a, 0xd4, 0xf3, 0x9d, 0x91, 0x38, 0xd8, 0x37,
+                        0x8e, 0xcb, 0xc0, 0xeb, 0xbe, 0x7b, 0x6a, 0x5b, 0x94, 0x1d, 0x9f, 0x50, 0xa5, 0xee, 0xdd, 0x97 };
     elliptic_curve256_scalar_t key;
+    if(count == 0) {
+        memcpy(key, KEY1, 32);
+    } else if (count == 1) {
+        memcpy(key, KEY2, 32);
+    } else {
+        memcpy(key, KEY3, 32);
+    }
     if (!derive_from.master_key_id.empty())
     {
         _service.derive_initial_share(derive_from, algorithm, &key);
@@ -116,7 +125,7 @@ void cmp_setup_service::generate_setup_commitments(const std::string& key_id, co
         while (i < MAX_ATTEMPTS)
         {
             
-            _service.gen_random(sizeof(elliptic_curve256_scalar_t), key);
+            // _service.gen_random(sizeof(elliptic_curve256_scalar_t), key);
             status = algebra->reduce(algebra, &key, &key);
             if (status == ELLIPTIC_CURVE_ALGEBRA_SUCCESS)
                 break;
